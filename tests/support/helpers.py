@@ -41,7 +41,6 @@ from salt.ext.six.moves import range, builtins  # pylint: disable=import-error,r
 from pytestsalt.utils import get_unused_localhost_port
 
 # Import Salt Tests Support libs
-from tests.support.unit import SkipTest
 from tests.support.mock import patch
 from tests.support.runtests import RUNTIME_VARS
 
@@ -904,7 +903,7 @@ def not_runs_on(grains=None, **kwargs):
     return decorator
 
 
-def _check_required_sminion_attributes(sminion_attr, *required_items):
+def _check_required_sminion_attributes(sminion_attr, required_items):
     '''
     :param sminion_attr: The name of the sminion attribute to check, such as 'functions' or 'states'
     :param required_items: The items that must be part of the designated sminion attribute for the decorated test
@@ -937,41 +936,6 @@ def _check_required_sminion_attributes(sminion_attr, *required_items):
             cached_not_available_items.add(required_item_name)
 
     return not_available_items
-
-
-def requires_salt_states(*names):
-    '''
-    Makes sure the passed salt state is available. Skips the test if not
-
-    .. versionadded:: 3000
-    '''
-    not_available = _check_required_sminion_attributes('states', *names)
-
-    def decorator(caller):
-        if inspect.isclass(caller):
-            # We're decorating a class
-            old_setup = getattr(caller, 'setUp', None)
-
-            def setUp(self, *args, **kwargs):
-                if not_available:
-                    raise SkipTest('Unavailable salt states: {}'.format(*not_available))
-
-                if old_setup is not None:
-                    old_setup(self, *args, **kwargs)
-
-            caller.setUp = setUp
-            return caller
-
-        # We're simply decorating functions
-        @functools.wraps(caller)
-        def wrapper(cls):
-            if not_available:
-                raise SkipTest('Unavailable salt states: {}'.format(*not_available))
-            return caller(cls)
-
-        return wrapper
-
-    return decorator
 
 
 def repeat(caller=None, condition=True, times=5):
